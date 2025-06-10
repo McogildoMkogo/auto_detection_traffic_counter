@@ -5,28 +5,12 @@ from pathlib import Path
 from utils.traffic_counter import TrafficCounter
 from utils.visualization import create_dashboard, load_traffic_data
 import pandas as pd
-import time
-import os
-
-def is_streamlit_cloud():
-    return os.environ.get("STREAMLIT_SERVER_HEADLESS", None) == "1"
 
 def show_home():
     st.title("Traffic Counter")
     
-    # Video source selection
-    if is_streamlit_cloud():
-        video_source = "Upload a video file"
-        st.info("Live camera is only available when running locally.")
-    else:
-        video_source = st.radio("Select video source:", ["Upload a video file", "Use live camera"])
-    
-    uploaded_file = None
-    use_camera = False
-    if video_source == "Upload a video file":
-        uploaded_file = st.file_uploader("Upload a video file", type=["mp4", "avi"])
-    else:
-        use_camera = True
+    # File uploader
+    uploaded_file = st.file_uploader("Upload a video file", type=["mp4", "avi"])
     
     # Counting line position slider
     count_line_pos = st.slider("Counting Line Position (as % of frame height)", min_value=0, max_value=100, value=50, step=1)
@@ -93,67 +77,6 @@ def show_home():
         # Clean up
         counter.stop_processing()
         video_path.unlink()
-    
-    # --- Live Camera Option ---
-    if use_camera:
-        st.info("Starting live camera. Please allow access if prompted.")
-        cap = cv2.VideoCapture(0)
-        if not cap.isOpened():
-            st.error("Could not open webcam.")
-        else:
-            counter = TrafficCounter(0, count_line_position=count_line_pos / 100.0)
-            col1, col2 = st.columns(2)
-            with col1:
-                st.subheader("Live Camera Feed")
-                video_placeholder = st.empty()
-                debug_placeholder = st.empty()
-                frame_skip = 3
-                i = 0
-                while True:
-                    ret, frame = cap.read()
-                    if not ret:
-                        st.warning("No frame received from camera.")
-                        break
-                    i += 1
-                    if i % frame_skip != 0:
-                        continue
-                    processed_frame, debug_info = counter.process_frame(frame, debug=True)
-                    frame_rgb = cv2.cvtColor(processed_frame, cv2.COLOR_BGR2RGB)
-                    frame_rgb = cv2.resize(frame_rgb, (640, 360))
-                    video_placeholder.image(frame_rgb, channels="RGB")
-                    debug_text = f"Vehicles detected in frame: {debug_info['vehicle_count']}\n"
-                    for vehicle_type, count in debug_info['vehicles_by_type'].items():
-                        debug_text += f"{vehicle_type.replace('_', ' ').title()}: {count}\n"
-                    debug_placeholder.info(debug_text)
-                    # Add a stop button
-                    if st.button("Stop Camera"):
-                        break
-                    time.sleep(0.03)
-            with col2:
-                st.subheader("Statistics")
-                stats_placeholder = st.empty()
-                stats = counter.stats
-                stats_text = f"""
-                ### Total Counts
-                - Overall Total: {stats.get('total_count', 0)}
-                
-                ### By Vehicle Type
-                - Cars: {stats.get('car', 0)}
-                - Motorcycles: {stats.get('motorcycle', 0)}
-                - Buses: {stats.get('bus', 0)}
-                - Trucks: {stats.get('truck', 0)}
-                - Bicycles: {stats.get('bicycle', 0)}
-                
-                ### By Direction
-                - Northbound: {stats.get('north_count', 0)}
-                - Southbound: {stats.get('south_count', 0)}
-                
-                ### Speed Information
-                - Average Speed: {stats.get('avg_speed', 0):.1f} km/h
-                """
-                stats_placeholder.markdown(stats_text)
-            cap.release()
-            counter.stop_processing()
     
     # Show dashboard if data exists
     st.subheader("Traffic Analysis Dashboard")
