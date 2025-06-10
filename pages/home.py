@@ -6,12 +6,20 @@ from utils.traffic_counter import TrafficCounter
 from utils.visualization import create_dashboard, load_traffic_data
 import pandas as pd
 import time
+import os
+
+def is_streamlit_cloud():
+    return os.environ.get("STREAMLIT_SERVER_HEADLESS", None) == "1"
 
 def show_home():
     st.title("Traffic Counter")
     
     # Video source selection
-    video_source = st.radio("Select video source:", ["Upload a video file", "Use live camera"])
+    if is_streamlit_cloud():
+        video_source = "Upload a video file"
+        st.info("Live camera is only available when running locally.")
+    else:
+        video_source = st.radio("Select video source:", ["Upload a video file", "Use live camera"])
     
     uploaded_file = None
     use_camera = False
