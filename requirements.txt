@@ -8,4 +8,4 @@ numpy==1.26.4
 lap==0.5.12
 requests==2.31.0
 seaborn==0.13.2
-matplotlib==3.10.1 
+matplotlib==3.7.1 
